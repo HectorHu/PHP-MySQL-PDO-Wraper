@@ -3,7 +3,7 @@
  * @Author: huhuaquan
  * @Date:   2015-06-08 17:45:18
  * @Last Modified by:   huhuaquan
- * @Last Modified time: 2015-06-08 18:53:49
+ * @Last Modified time: 2015-06-08 19:09:51
  */
 class PDO_MySQL {
 	public static $instance = null;
@@ -54,7 +54,7 @@ class PDO_MySQL {
 
 	private static function execute($sql, $params)
 	{
-		//todo
+		
 	}
 
 	private static function getOne($conditions)
@@ -72,9 +72,29 @@ class PDO_MySQL {
 		//todo
 	}
 
-	private static function insert($data)
+	private static function insert($table, $data)
 	{
-		//todo
+		$columns = array();
+		$params = array();
+		foreach ($data as $tmp_field => $value)
+		{
+			$columns[] = "`" . $tmp_field . "` = ?";
+			$params[] = $value;
+		}
+		$columns = implode(',', $columns);
+		$insert_sql = implode(" ", array(
+			'insert',
+			self::$table,
+			'set',
+			$columns,
+		));
+		$ret = self::execute($insert_sql, $params, true);
+		if ($ret === false)
+		{
+			var_dump("Insert error, args" . json_encode(func_get_args()));
+			return false;
+		}
+		return self::$instance->lastInsertId();
 	}
 
 	private static function insertAll($data)
