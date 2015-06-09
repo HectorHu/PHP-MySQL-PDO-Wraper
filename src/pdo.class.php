@@ -3,7 +3,7 @@
  * @Author: huhuaquan
  * @Date:   2015-06-08 17:45:18
  * @Last Modified by:   huhuaquan
- * @Last Modified time: 2015-06-08 19:09:51
+ * @Last Modified time: 2015-06-09 09:33:10
  */
 class PDO_MySQL {
 	public static $instance = null;
@@ -52,9 +52,20 @@ class PDO_MySQL {
 		return false;
 	}
 
-	private static function execute($sql, $params)
+	private static function execute($sql, $params, $isReturn = false)
 	{
-		
+		try
+		{
+			$stmt = self::$instance->prepare($sql);
+			$result = $stmt->execute($params);
+		}
+		catch (Exception $e)
+		{
+			var_dump("catch query exception, params: " . json_encode(json_encode(func_get_args())) . ", info: " . $e->__toString());
+			return false;
+		}
+
+		return $isReturn ? $result : $stmt;
 	}
 
 	private static function getOne($conditions)
@@ -86,10 +97,10 @@ class PDO_MySQL {
 			'insert',
 			self::$table,
 			'set',
-			$columns,
+			$columns
 		));
 		$ret = self::execute($insert_sql, $params, true);
-		if ($ret === false)
+		if ($ret !== true)
 		{
 			var_dump("Insert error, args" . json_encode(func_get_args()));
 			return false;
