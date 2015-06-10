@@ -3,7 +3,7 @@
  * @Author: huhuaquan
  * @Date:   2015-06-08 18:04:31
  * @Last Modified by:   huhuaquan
- * @Last Modified time: 2015-06-10 11:34:13
+ * @Last Modified time: 2015-06-10 11:44:25
  */
 require_once 'src/pdo.class.php';
 
@@ -20,5 +20,8 @@ require_once 'src/pdo.class.php';
 // var_dump($result);
 
 //get one test
-$result = PDO_MySQL::getOne('test', array('id' => 30), 'name');
+// $result = PDO_MySQL::getOne('test', array('id' => 30), 'name');
+// var_dump($result);
+
+$result = PDO_MySQL::delete('test', array('id' => array('<=' => 30)));
 var_dump($result);

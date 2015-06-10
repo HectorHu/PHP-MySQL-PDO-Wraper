@@ -3,7 +3,7 @@
  * @Author: huhuaquan
  * @Date:   2015-06-08 17:45:18
  * @Last Modified by:   huhuaquan
- * @Last Modified time: 2015-06-10 11:35:02
+ * @Last Modified time: 2015-06-10 11:42:48
  */
 class PDO_MySQL {
 	public static $instance = null;
@@ -190,9 +190,24 @@ class PDO_MySQL {
 		return self::multiLastInsertId($stmt);
 	}
 
-	private static function delete($conditions)
+	private static function delete($table, $conditions)
 	{
-		//todo
+		$params = array();
+		$where = empty($conditions) ? '' : self::biuldMultiWhere($conditions, $params);
+		$delete_sql = implode(' ', array(
+			'DELETE FROM ',
+			self::$table,
+			$where,
+		));
+		$stmt = self::$instance->prepare($delete_sql);
+		self::bind($params, $stmt);
+		$result = $stmt->execute();
+		if ($result === false)
+		{
+			var_dump('delete error ' . json_encode($delete_sql . func_get_args()));
+			return false;
+		}
+		return $result;
 	}
 
 	private static function update($conditions)
