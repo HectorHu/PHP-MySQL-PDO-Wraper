@@ -3,11 +3,24 @@
  * @Author: huhuaquan
  * @Date:   2015-06-08 17:45:18
  * @Last Modified by:   huhuaquan
- * @Last Modified time: 2015-06-09 19:36:18
+ * @Last Modified time: 2015-06-10 11:21:24
  */
 class PDO_MySQL {
 	public static $instance = null;
 	public static $table = null;
+
+	private static $allow_operator = array(
+		'=',
+		'>',
+		'>=',
+		'<',
+		'<=',
+		'!=',
+		'in',
+		'not in',
+		'like',
+		'not like',
+	);
 
 	private static $config_file_path = '/config/config.php';
 
@@ -62,9 +75,26 @@ class PDO_MySQL {
 		//todo
 	}
 
-	private static function count($conditions)
+	private static function count($table, $conditions = array())
 	{
-		//todo
+		$params = array();
+		$where = empty($conditions) ? '' : self::biuldMultiWhere($conditions, $params);
+		$count_sql = implode(" ", array(
+			'SELECT COUNT(*) AS total_num FROM',
+			self::$table,
+			$where
+		));
+		$stmt = self::$instance->prepare($count_sql);
+		self::bind($params, $stmt);
+		$result = $stmt->execute();
+		if($result === false)
+		{
+			var_dump("count error, args " . json_encode(func_get_args()));
+			return false;
+		}
+		$count = $stmt->fetch(PDO::FETCH_ASSOC);
+		$count = isset($count['total_num']) ? $count['total_num'] : 0;
+		return intval($count);
 	}
 
 	private static function insert($table, $data)
@@ -81,10 +111,10 @@ class PDO_MySQL {
 		$columns = '(' . implode(',', $columns). ')';
 		$places = '(' . implode(',', $places) . ')';
 		$insert_sql = implode(" ", array(
-			'insert into',
+			'INSERT INTO',
 			self::$table,
 			$columns,
-			'values',
+			'VALUES',
 			$places
 		));
 		$stmt = self::$instance->prepare($insert_sql);
@@ -125,10 +155,10 @@ class PDO_MySQL {
 		}
 		$places = implode(',', $places);
 		$insert_sql = implode(" ", array(
-			'insert into',
+			'INSERT INTO',
 			self::$table,
 			$columns,
-			'values ',
+			'VALUES',
 			$places
 		));
 		$stmt = self::$instance->prepare($insert_sql);
@@ -156,7 +186,7 @@ class PDO_MySQL {
 	{
 		foreach ($params as $field => $value)
 		{
-			$stmt->bindParam($field, $value);
+			$stmt->bindValue($field, $value);
 		}
 	}
 
@@ -173,5 +203,78 @@ class PDO_MySQL {
 		$firstInsertedId = self::$instance->lastInsertId();
 		$lastInsertedId = $firstInsertedId + ($stmt->rowCount() - 1);
 		return $lastInsertedId;
+	}
+
+	private static function buildWhere($conditions, &$params)
+	{
+		$ret = array();
+		foreach ($conditions as $field => $express)
+		{
+			if (is_scalar($express))
+			{
+				$ret[] = $field . " = :" . $field;
+				$params[":" . $field] = $express;
+			}
+			elseif (is_array($express))
+			{
+				foreach ($express as $opeartor => $tmp_val)
+				{
+					$opeartor = strtoupper($opeartor);
+					if (in_array($opeartor, self::$allow_operator))
+					{
+						$ret[] = $field . " " . $opeartor . " :" . $field;
+						$params[":" . $field] = $tmp_val;
+					}
+				}
+			}
+		}
+
+		return $ret;
+	}
+
+	/*
+	$condition = arrray(
+		'id' => array('>=' => 3),
+		"name" => 'test',
+		'desc' => array('like' => "%123")
+	);
+
+	$condition = array(
+		"where" => array(
+			"id" => 1,
+		),
+		"or_where" => array(
+			'id' > array('>=' => 3),
+			"name" => 'test',
+			'desc' => array('like' => "%123")			
+		),
+	);
+	*/
+	private static function biuldMultiWhere($conditions, &$params)
+	{
+		$where = "";
+		$or_where = "";
+		if (!empty($conditions['where']) || !empty($conditions['or_where']))
+		{
+			if (!empty($conditions['where']))
+			{
+				$tmp_where = self::buildWhere($conditions, $params);
+				$where = implode(' and ', $tmp_where);
+			}
+
+			if (!empty($conditions['or_where']))
+			{
+				$tmp_or_where = self::buildWhere($conditions, $params);
+				$prefix = empty($where) ? " where " : " ";
+				$or_where = $prefix . implode(' and ', $tmp_where);
+			}
+		}
+		else
+		{
+			$tmp_where = self::buildWhere($conditions, $params);
+			$where = ' where ' . implode(' and ', $tmp_where);
+		}
+
+		return $where . $or_where;
 	}
 }

@@ -3,7 +3,7 @@
  * @Author: huhuaquan
  * @Date:   2015-06-08 18:04:31
  * @Last Modified by:   huhuaquan
- * @Last Modified time: 2015-06-09 19:17:22
+ * @Last Modified time: 2015-06-10 11:21:09
  */
 require_once 'src/pdo.class.php';
 
@@ -12,5 +12,9 @@ require_once 'src/pdo.class.php';
 // var_dump($result);
 
 //insertall test
-$result = PDO_MySQL::insertAll('test', array('id', 'name'), array(array('', 'hhq'), array('', 'hhj')));
+// $result = PDO_MySQL::insertAll('test', array('id', 'name'), array(array('', 'hhq'), array('', 'hhj')));
+// var_dump($result);
+
+//count test
+$result = PDO_MySQL::count('test', array('id' => array('>=' => 30)));
 var_dump($result);
