@@ -3,7 +3,7 @@
  * @Author: huhuaquan
  * @Date:   2015-06-08 17:45:18
  * @Last Modified by:   huhuaquan
- * @Last Modified time: 2015-06-10 15:00:33
+ * @Last Modified time: 2015-06-10 16:21:41
  */
 class PDO_MySQL {
 	public static $instance = null;
@@ -20,6 +20,13 @@ class PDO_MySQL {
 		'not in',
 		'like',
 		'not like',
+	);
+
+	private static $allow_join_type = array(
+		'join',
+		'left join',
+		'right join',
+		'inner join',
 	);
 
 	private static $config_file_path = '/config/config.php';
@@ -65,7 +72,7 @@ class PDO_MySQL {
 		return false;
 	}
 
-	private static function getOne($table, $conditions = array(), $field = '*')
+	private static function getOneRow($table, $conditions = array(), $field = '*')
 	{
 		$params = array();
 		$where = empty($conditions) ? '' : self::biuldMultiWhere($conditions, $params);
@@ -88,9 +95,94 @@ class PDO_MySQL {
 		return $stmt->fetch(PDO::FETCH_ASSOC);
 	}
 
-	private static function getAll($conditions, $option = array())
+	private static function getAll($table, $conditions)
 	{
-		//todo
+		$fields = empty($conditions['fields']) ? '*' : $conditions['fields'];
+
+		$join = '';
+		if (!empty($conditions['join']))
+		{
+			empty($conditions['join']['type']) && $conditions['join']['type'] = 'join';
+			if (in_array(strtolower($conditions['join']['type']), self::$allow_join_type))
+			{
+				$join = $conditions['join']['type'] . " " . $conditions['join']['table'] . " on " . $conditions['join']['on'];
+			}
+		}
+
+		$where = "";
+		if (!empty($conditions['where']))
+		{
+			$tmp_where = self::buildWhere($conditions['where'], $params);
+			$where = " where " . implode(' and ', $tmp_where);
+		}
+
+		$or_where = "";
+		if (!empty($conditions['or_where']))
+		{
+			$tmp_or_where = self::buildWhere($conditions['or_where'], $params);
+			$prefix = empty($where) ? " where " : " ";
+			$or_where = $prefix . implode(' OR ', $tmp_or_where);
+		}
+
+		$group_by = "";
+		if (!empty($conditions['group_by']))
+		{
+			$group_by = "GROUP BY " . $conditions['group_by'];
+		}
+
+		$having = "";
+		if (!empty($conditions['having']))
+		{
+			$tmp_having = self::buildWhere($conditions['having'], $params);
+			$having = " HAVING " . implode(' AND ', $tmp_having);
+		}
+
+		$sort = "";
+		if (!empty($conditions['sort']))
+		{
+			foreach ($conditions['sort'] as $tmp_field => $sort_way)
+			{
+				$sort_way = ($sort_way == 1) ? " ASC " : " DESC ";
+				$tmp_sort[] = $tmp_field . $sort_way;
+			}
+			$sort = " ORDER BY " . implode(',', $tmp_sort);
+		}
+
+		$limit = "";
+		if (!empty($conditions['limit']))
+		{
+			$limit = " LIMIT " . intval($conditions['limit']);
+		}
+
+		$offset = "";
+		if (!empty($conditions['offset']))
+		{
+			$offset = ' OFFSET ' . intval($conditions['offset']);
+		}
+
+		$select_sql = implode(" ", array(
+			'SELECT',
+			$fields,
+			'FROM',
+			self::$table,
+			$join,
+			$where,
+			$or_where,
+			$group_by,
+			$having,
+			$sort,
+			$limit,
+			$offset,
+		));
+		$stmt = self::$instance->prepare($select_sql);
+		self::bind($params, $stmt);
+		$result = $stmt->execute();
+		if ($result === false)
+		{
+			var_dump('select error, args' . json_encode(func_get_args()));
+			return false;
+		}
+		return $stmt->fetchAll(PDO::FETCH_ASSOC);
 	}
 
 	private static function count($table, $conditions = array())
