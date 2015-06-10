@@ -3,7 +3,7 @@
  * @Author: huhuaquan
  * @Date:   2015-06-08 17:45:18
  * @Last Modified by:   huhuaquan
- * @Last Modified time: 2015-06-10 11:21:24
+ * @Last Modified time: 2015-06-10 11:35:02
  */
 class PDO_MySQL {
 	public static $instance = null;
@@ -65,9 +65,27 @@ class PDO_MySQL {
 		return false;
 	}
 
-	private static function getOne($conditions)
+	private static function getOne($table, $conditions = array(), $field = '*')
 	{
-		//todo
+		$params = array();
+		$where = empty($conditions) ? '' : self::biuldMultiWhere($conditions, $params);
+		$select_sql = implode(' ', array(
+			'SELECT',
+			$field,
+			' FROM ',
+			self::$table,
+			$where,
+			'LIMIT 1',
+		));
+		$stmt = self::$instance->prepare($select_sql);
+		self::bind($params, $stmt);
+		$result = $stmt->execute();
+		if ($result === false)
+		{
+			var_dump('get one error ' . json_encode($select_sql . func_get_args()));
+			return false;
+		}
+		return $stmt->fetch(PDO::FETCH_ASSOC);
 	}
 
 	private static function getAll($conditions, $option = array())
