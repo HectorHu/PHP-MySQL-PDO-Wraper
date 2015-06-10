@@ -3,12 +3,17 @@
  * @Author: huhuaquan
  * @Date:   2015-06-08 17:45:18
  * @Last Modified by:   huhuaquan
- * @Last Modified time: 2015-06-10 16:21:41
+ * @Last Modified time: 2015-06-10 17:48:20
  */
 class PDO_MySQL {
-	public static $instance = null;
-	public static $table = null;
+	
+	//PDO实例
+	private static $instance = null;
 
+	//表名
+	private static $table = null;
+
+	//操作符
 	private static $allow_operator = array(
 		'=',
 		'>',
@@ -22,6 +27,7 @@ class PDO_MySQL {
 		'not like',
 	);
 
+	//join类型
 	private static $allow_join_type = array(
 		'join',
 		'left join',
@@ -29,9 +35,10 @@ class PDO_MySQL {
 		'inner join',
 	);
 
+	//配置文件路径
 	private static $config_file_path = '/config/config.php';
 
-	//程序统一入口
+	//程序对外统一入口
 	public static function __callStatic($func_name, $args)
 	{
 		//初始化连接
@@ -58,6 +65,7 @@ class PDO_MySQL {
 		{
 			try
 			{
+				//调用对应函数
 				$ret = call_user_func_array("self::$func_name", $args);
 			}
 			catch(Exception $e)
@@ -72,6 +80,13 @@ class PDO_MySQL {
 		return false;
 	}
 
+	/**
+	* 返回一行数据
+	* @param 	$table 			string 		表名
+	* @param 	$conditions 	array 		检索条件
+	* @param 	$fields 		string 		检索字段
+	* @return  					array 		检索结果组成的一维数组
+	*/
 	private static function getOneRow($table, $conditions = array(), $field = '*')
 	{
 		$params = array();
@@ -95,6 +110,12 @@ class PDO_MySQL {
 		return $stmt->fetch(PDO::FETCH_ASSOC);
 	}
 
+	/**
+	* 返回多行数据
+	* @param 	$table 		string  	数据表名
+	* @param 	$conditions array 		检索条件
+	* @return   			array 		返回数据组成的数组
+	*/
 	private static function getAll($table, $conditions)
 	{
 		$fields = empty($conditions['fields']) ? '*' : $conditions['fields'];
@@ -185,6 +206,12 @@ class PDO_MySQL {
 		return $stmt->fetchAll(PDO::FETCH_ASSOC);
 	}
 
+	/**
+	* 根据条件返回数据的数量
+	* @param 	$table 			string 	数据表名
+	* @param 	$conditions 	array 	检索条件
+	* @return 					int 	数量的结果
+	*/
 	private static function count($table, $conditions = array())
 	{
 		$params = array();
@@ -207,6 +234,12 @@ class PDO_MySQL {
 		return intval($count);
 	}
 
+	/**
+	* 插入一行数据到数据库中
+	* @param 	$table 	string 	数据表名
+	* @param 	$data 	array 	需要插入的数据
+	* @return 			int 	插入新行的ID
+	*/
 	private static function insert($table, $data)
 	{
 		$columns = array();
@@ -238,6 +271,13 @@ class PDO_MySQL {
 		return self::$instance->lastInsertId();
 	}
 
+	/**
+	* 插入多行数据到数据库中
+	* @param 	$table 		string 	数据表名
+	* @param 	$fields 	array 	插入的字段
+	* @param 	$datas 		array 	插入的数据
+	* @return 				int 	插入的最后一行的ID
+	*/
 	private static function insertAll($table, $fields, $datas)
 	{
 		$columns = array();
@@ -282,6 +322,12 @@ class PDO_MySQL {
 		return self::multiLastInsertId($stmt);
 	}
 
+	/**
+	* 删除操作
+	* @param 	$table 			string 	数据表名
+	* @param 	$conditions 	array 	执行条件
+	* @return 					int 	影响行数
+	*/
 	private static function delete($table, $conditions)
 	{
 		$params = array();
@@ -302,6 +348,13 @@ class PDO_MySQL {
 		return $stmt->rowCount();
 	}
 
+	/**
+	* 更新操作
+	* @param 	$table 			string 	数据表名
+	* @param 	$conditions 	array 	执行条件
+	* @param 	$data 			array 	更新的数据
+	* @return 					int 	影响行数
+	*/
 	private static function update($table, $conditions, $data)
 	{
 		$columns = array();
@@ -332,6 +385,11 @@ class PDO_MySQL {
 		return $stmt->rowCount();
 	}
 
+	/**
+	* 为一个PDO占位符绑定值
+	* @param 	$params 	array 	一个占位符与值的键值对数组
+	* @param 	$stmt 		object 	PDOStatement对象
+	*/
 	private static function bind($params, &$stmt)
 	{
 		foreach ($params as $field => $value)
@@ -340,6 +398,11 @@ class PDO_MySQL {
 		}
 	}
 
+	/**
+	* 为多个PDO占位符绑定值
+	* @param 	$params 	array 	多个占位符与值的键值对数组
+	* @param 	$stmt 		object 	PDOStatement对象
+	*/
 	private static function bindMulti($params_array, &$stmt)
 	{
 		foreach ($params_array as $params)
@@ -348,6 +411,11 @@ class PDO_MySQL {
 		}
 	}
 
+	/**
+	* 返回执行多行插入的最后插入行的ID
+	* @param 	$stmt 			object 	PDOStatement对象
+	* @return 	$lastInsertedId	int 	多行插入的最后插入行的ID
+	*/
 	private static function multiLastInsertId($stmt)
 	{
 		$firstInsertedId = self::$instance->lastInsertId();
@@ -355,6 +423,12 @@ class PDO_MySQL {
 		return $lastInsertedId;
 	}
 
+	/**
+	* 根据参数构造where条件
+	* @param 	$conditions 	array 	构造条件
+	* @param 	$param 			array 	构造后的占位符与值的键值对数组
+	* @return 	$ret 			array 	构造后的where条件组成的数组
+	*/
 	private static function buildWhere($conditions, &$params)
 	{
 		$ret = array();
@@ -399,6 +473,12 @@ class PDO_MySQL {
 			'desc' => array('like' => "%123")			
 		),
 	);
+	*/
+	/**
+	* 根据参数构造多个where条件
+	* @param 	$conditions 	array 	构造条件
+	* @param 	$param 			array 	构造后的占位符与值的键值对数组
+	* @return 	$ret 			string 	构造后的where条件
 	*/
 	private static function biuldMultiWhere($conditions, &$params)
 	{
