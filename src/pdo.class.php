@@ -3,7 +3,7 @@
  * @Author: huhuaquan
  * @Date:   2015-06-08 17:45:18
  * @Last Modified by:   huhuaquan
- * @Last Modified time: 2015-06-10 11:42:48
+ * @Last Modified time: 2015-06-10 15:00:33
  */
 class PDO_MySQL {
 	public static $instance = null;
@@ -207,12 +207,37 @@ class PDO_MySQL {
 			var_dump('delete error ' . json_encode($delete_sql . func_get_args()));
 			return false;
 		}
-		return $result;
+		return $stmt->rowCount();
 	}
 
-	private static function update($conditions)
+	private static function update($table, $conditions, $data)
 	{
-		//todo
+		$columns = array();
+		$params = array();
+		foreach ($data as $tmp_field => $value)
+		{
+			$columns[] = "`" . $tmp_field . "` = :" . $tmp_field;
+			$params[":" . $tmp_field] = $value;
+		}
+
+		$columns = implode(' , ', $columns);
+		$where = self::biuldMultiWhere($conditions, $params);
+		$update_sql = implode(' ', array(
+			'UPDATE',
+			self::$table,
+			'SET',
+			$columns,
+			$where
+		));
+		$stmt = self::$instance->prepare($update_sql);
+		self::bind($params, $stmt);
+		$result = $stmt->execute();
+		if ($result === false)
+		{
+			var_dump("update error" . json_encode($update_sql . func_get_args()));
+			return false;
+		}
+		return $stmt->rowCount();
 	}
 
 	private static function bind($params, &$stmt)
